@@ -20,7 +20,7 @@ source .venv/bin/activate
 ```
 You will need to install the following dependencies.
 ```bash
-pip install numpy matplotlib opencv-python
+pip install cprint numpy matplotlib opencv-python
 ```
 
 ## 1. Occupancy Grid Mapping (60 points)
@@ -53,12 +53,13 @@ parts are marked by `TODO` and are necessary to complete for full credit.
 4. `set`, `set_cell`, `set_row_col`: Set the occupancy data at the input index `idx` (or cells) to `value`.
 5. `probability`: Convert logodds represention to probability.
 6. `logodds`: Convert probability representation to logodds.
-7. `cell_to_point`, `cell_to_point_row_col`: Get the lower left hand corner of the input `cell` in the 2D point space.
+7. `cell_to_point`, `cell_to_point_row_col`: Get the lower left hand corner of the input `cell` in the 2D point space. In a grid of resolution `0.1`, the lower left hand corner of the cell `(row = 70, col = 20)` corresponds to the point `(x=0.2, y=0.7)`. This is in contrast to the center point of the cell which is `(x=0.25, y=0.75)`.
 8. `point_to_cell`: Get the `Cell` corresponding to the input 2D point.
-9. `inQ`: Check if the input 2D point is in the grid bounds or not.
+9.  `inQ`: Check if the input 2D point is in the grid bounds or not.
 10. `traverse`: Given a line segment (start and end points), return a tuple (`success`, `raycells`)
 where `success` is a bool indicating whether the traversal through the grid was successful and `raycells`
-is a list of cells that were traversed if successful.
+is a list of cells that were traversed if successful. You may find the paper by Amanatides and Woo [1]
+to be useful for this part.
 
 **Debugging and Grading**
 We have provided a testing script `mapper_py/grid_test.py`. It contains two
@@ -191,6 +192,257 @@ Quantitative test successful for office map.
 ```
 
 ## 2. Filtering-based Localization (40 points)
+So far, we have assumed that the position of the robot is perfectly known. In this part
+of the assignment, we will create a localization system for a differential drive robot.
+There is no global positioning system available for our robot and we must reliably estimate
+its state using a noisy GPS sensor.
+
+### Differential Drive Robot
+
+<p align="center">
+  <img src="diff_drive_robot.png" />
+</p>
+
+A wheeled robot equipped with a differential drive contains two main wheels controllable
+through motors. Let us understand the kinematic model for such a robot. The state
+of this robot at any time $t$ can be written using the vector
+
+$$\mathbf{x} = \begin{bmatrix}x \\ y \\ \psi \end{bmatrix},$$
+
+where $x$ and $y$ are the coordinates of the robot in the 2D point space, $\psi$
+is the angle between the robot's x-axis and the global x-axis (see the
+illustration above). The control input applied to the wheels is denoted using
+the vector
+
+$$\mathbf{u} = \begin{bmatrix}u_L \\ u_R\end{bmatrix}.$$
+
+The time derivative of the state vector is given by
+
+$$
+\dot{\mathbf{x}} \coloneqq f(\mathbf{x}, \mathbf{u}) = \begin{bmatrix} \frac{r}{2} \cos{\psi} & \frac{r}{2}
+\cos{\psi}\\ \frac{r}{2} \sin{\psi} & \frac{r}{2} \sin{\psi} \\ - \frac{r}{L} &
+\frac{r}{L} \end{bmatrix} \begin{bmatrix} u_L \\ u_R \end{bmatrix},
+\tag{1}
+$$
+
+where $r$ is the radius of each wheel and $L$ is the distance between the two wheels (axle length). 
+
+Equation 1 shows the continuous-time kinematics for the differential drive
+wheeled robot.  However, we will be working with discrete-time kinematics. In
+the discrete-time paradigm, we study the robot's kinematics at any *timestep*
+instead of any *time*.  We have to discretize time into equally sized intervals.
+Let the size of one such interval be $\Delta t$.  As $\Delta t \rightarrow 0$,
+discrete-time kinematics tends towards continuous-time kinematics.
+
+A key question then is: How to convert the continuous-time kinematics in Eq. 2
+to the discrete-time case? This cannot be done analytically and we need a
+numerical approximation. Here we use a first-order approximation of the
+continuous-time case using the Euler's method for numerical integration. Given
+the state at timestep $t-1$, the state at timestep $t$ is expressed as
+  
+$$
+\mathbf{x}_t = \mathbf{x}_{t-1} + f(\mathbf{x}_{t-1}, \mathbf{u}_t) \Delta t.
+\tag{2}
+$$
+
+In Eq. 1, we assumed that there is no noise from the environment affecting robot's state. This is
+a major assumption because most of the robotics application in real-world are prone to *process* noise.
+For example, if a wheeled robot is navigating on a rough surface, it's state might be affected from
+the oscillations due to uneven bumps in the surface.
+
+Accounting for the process noise, we get the continuous-time kinematics model of the robot:
+$$
+\dot{\mathbf{x}} = g(\mathbf{x}, \mathbf{u}, \mathbf{w}),
+\tag{3}
+$$
+
+where the function $g(\mathbf{x}, \mathbf{u}, \mathbf{w})$ is essentially a combination of the function
+$f(\mathbf{x}, \mathbf{u})$ and the process noise variable $\mathbf{w}$. Typically this combination is
+unknown for any robotic system. Thus, state estimation strategies impose assumptions on how the function
+$g(\mathbf{x}, \mathbf{u}, \mathbf{w})$ is related to $f(\mathbf{x}, \mathbf{u})$ and $\mathbf{w}$.
+
+Before we study estimators that account for process noise and sensing data, let us implement a
+naive state estimation method that ignores these aspects.
+
+### 2.1 Dead Reckoning (DR) (10 points)
+To get state estimate at any time $t$, why not just integrate the kinematics
+over time? The process of estimating the state only based on the kinematics,
+without using any sensing data and noise handling, is known as Dead Reckoning (DR).
+
+For DR, Eq. 2 is approximated as
+
+$$
+g(\mathbf{x}, \mathbf{u}) = \mathbf{x} + f(\mathbf{x}, \mathbf{u}) \Delta t
+\tag{3}
+$$
+
+At any $t$, we want to estimate the state $\hat{\mathbf{x}}_t$. We are given the estimated
+state $\hat{\mathbf{x}}_{t-1}$ at the previous timestep $t-1$ and the current control input to the
+system $\mathbf{u}_t$. Using the definition of $g(\mathbf{x}, \mathbf{u})$ in Eq. 3 above, the
+state estimate is obtained in DR using:
+
+$$
+\mathbf{x}_t = \mathbf{x}_{t-1} + g(\mathbf{x}_{t-1}, \mathbf{u}_t) \Delta t
+\tag{4}
+$$
+
+Open `state_est_py/estimator.py` and implement Eq. 4 in the `dead_reckoning` method within the `Estimator` class.
+
+**Debugging and Grading**
+We have provided the `state_est_py/estimator_test.py` script for testing.
+Please look through the function `dead_reckoning_test` and try to follow what it
+is doing. It uses the ground truth data `test_data/dead_reckoning_test.npz`
+(i.e., the real states $(\mathbf{x}_0, \mathbf{x}_1, \ldots, \mathbf{x}_{N-1})$
+of the robot due to the control input sequence $(\mathbf{u}_0, \mathbf{u}_1,
+\ldots, \mathbf{u}_{N-1})$ provided to the wheels of the robot). In our ground
+truth data collection process (which we will not reveal), we have added some
+noise to the process model of the robot.  In DR, as state earlier, you are not
+supposed to account for any noise.
+
+A correct implementation for DR will result in a plot that looks like this:
+
+![](example-output-2_1.png)
+
+and in the terminal you should see
+
+```txt
+dead reckoning test successful.
+```
+
+Looking at the figure above, it is clear that dead reckoning is not providing
+good estimates for the robot. This is because we have ignored using any sensors
+that may be onboard the robot (e.g., GPS) and we have not accounted for the
+process noise $\mathbf{w}$.
+
+### 2.2 Kalman Filter (KF) (10 points)
+Let us assume that our wheeled robot is operating outdoors on a rough terrain. Due to
+the rough terrain, the actual motion of the robot suffers from unknown perturbations (i.e., the
+unknown process noise $\mathbf{w}$). There is a GPS sensor mounted on the robot that provides
+noisy estimates of the x and y coordinates of the robot (i.e., directly observes the $x$ and
+$y$ elements of the state vector $\mathbf{x}$).
+
+To improve upon dead reckoning, we need a way to account for the unknown
+$\mathbf{w}$ and enable incorporate sensor-based feedback using the GPS sensor.
+Note that the GPS sensor might also have unknown noise characteristics.
+
+Let us try to solve this problem using a *Kalman filter* [2]. The Kalman filter
+requires us to make several assumptions:
+1. The process model $g(\mathbf{x}, \mathbf{u}, \mathbf{w})$ needs to be a linear function of
+$\mathbf{x}$, $\mathbf{u}$, and $\mathbf{w}$. The models for any sensors used for estimation also
+need to be linear (in our case it is the GPS sensor).
+2. Any noise in the system or the sensor must be assumed to be distributed
+according to a Gaussian (or Normal) distribution.
+
+Notice from Eqs. 1 and 3 that the process model $g(\mathbf{x}, \mathbf{u},
+\mathbf{w})$ is nonlinear with respect to $\mathbf{x}$. To mitigate this, we use
+the process model in Eq. 2 and substitute the value of $f(\mathbf{x},
+\mathbf{u})$ from Eq. 1 assuming that the angle $\psi$ is always fixed to the
+value $\pi / 4$. Therefore, we will only estimate the states $x$ and $y$ in this example.
+Later, in Extended Kalman Filter we will see how to mitigate this limitation.
+
+The process noise $\mathbf{w} \sim \mathcal{N}(0, \mathbf{Q})$ is assumed to be
+sampled from a Gaussian distribution with zero mean and covariance $\mathbf{Q}$.
+
+Putting these pieces together, the final process model to be used for the Kalman filter is:
+
+$$
+\begin{bmatrix} x_t \\ y_t \end{bmatrix} = \begin{bmatrix} 1 & 0 \\ 0 & 1
+\end{bmatrix} \begin{bmatrix} x_{t-1} \\ y_{t-1} \end{bmatrix} + \begin{bmatrix}
+\Delta t \frac{r}{2} \cos{\psi} & \Delta t \frac{r}{2} \cos{\psi}\\ \Delta t \frac{r}{2} \sin{\psi} &
+\Delta t \frac{r}{2} \sin{\psi} \end{bmatrix}_{\psi = \frac{\pi}{4}} \begin{bmatrix} u_L \\ u_R \end{bmatrix} +
+\mathbf{w}_t.
+$$
+
+This equation can be written in a shorter form as
+$$
+\mathbf{x}_t = \mathbf{A} \mathbf{x}_{t-1} + \mathbf{B} \mathbf{u}_t + \mathbf{w}_t.
+$$
+
+The Kalman filter also requires a *measurement model*, a linear model for the sensor. We
+will use the following model for our GPS sensor:
+
+$$
+\mathbf{y}_t \coloneqq h(\mathbf{x}_t, \mathbf{v}_t) = \mathbf{C} \mathbf{x}_t + \mathbf{v}_t =
+\begin{bmatrix}1 & 0 \\ 0 & 1\end{bmatrix} \mathbf{x}_t + \mathbf{v}_t.
+$$
+
+Here, $\mathbf{y}_t$ is the current observation from the sensor,
+$h(\mathbf{x}_t, \mathbf{v}_t)$ denotes the linear measurement model, and it is assumed that
+the noise in the GPS sensor is Gaussian distributed, $\mathbf{v}_t \sim \mathcal{N}(0, \mathbf{R})$,
+with zero-mean and a covariance $\mathbf{R}$.
+
+We now have all the elements to implement the Kalman filter. Note that the Kalman filter requires
+the following inputs:
+1. The process model noise covariance $\mathbf{Q}$.
+2. The measurement model noise covariance $\mathbf{R}$.
+3. An initial guess for the covariance associated with the state $\mathbf{P}_0$.
+
+The algorithms progresses as follows. At timestep $t$, we first estimate the state using
+the process model,
+
+$$
+\hat{\mathbf{x}}_t = \mathbf{A} \hat{\mathbf{x}}_{t-1} + \mathbf{B} \hat{\mathbf{u}_t},
+$$
+
+followed by an update to the covariance (or uncertainty) estimate about this state:
+
+$$
+\mathbf{P}_t = \mathbf{A} \mathbf{P}_{t-1} \mathbf{A}^{\top} + \mathbf{Q}.
+$$
+
+Notice how the process model noise is incorporated in the uncertainty estimate for the state.
+Now, we need to incorporate the knowledge acquired through the GPS sensor while accounting for
+the associated noise. We do this by computing what's called the *Kalman Gain*:
+
+$$
+\mathbf{K}_{t} = \mathbf{P}_t \mathbf{C}^{\top} (\mathbf{C} \mathbf{P}_{t} \mathbf{C}^{\top} + \mathbf{R})^{-1}.
+$$
+
+The Kalman Gain is then used to correct the state estimate in-place, utilizing the latest
+measurement from the GPS, $\mathbf{y}_t$,
+
+$$
+\hat{\mathbf{x}}_{t} \leftarrow \hat{\mathbf{x}}_t + \mathbf{K}_t (\mathbf{y}_t - \mathbf{C}\hat{\mathbf{x}_t}),
+$$
+
+followed by an in-place covariance correction
+
+$$
+\mathbf{P}_t \leftarrow (\mathbf{I} - \mathbf{K}_t \mathbf{C}) \mathbf{P}_t.
+$$
+
+This process is repeated for all possible timesteps $t$.
+
+Open `state_est_py/estimator.py` and implement Kalman filter for our problem in
+the `kalman_filter` method within the `Estimator` class.
+
+**Debugging and Grading**
+Just like the dead reckoning test, we have provided the function
+`kalman_filter_test` inside the `state_est_py/estimator_test.py` script for
+testing.  It uses the ground truth data `test_data/kalman_filter_test.npz`
+which contains:
+
+1. Correct states $(\mathbf{x}_0, \mathbf{x}_1, \ldots, \mathbf{x}_{N-1})$
+2. Control inputs $(\mathbf{u}_0, \mathbf{u}_1, \ldots, \mathbf{u}_{N-1})$
+3. Observed GPS data $(\mathbf{y}_0, \mathbf{y}_1, \ldots, \mathbf{y}_{N-1})$
+4. Errors observed for the reference KF estimator implementation
+
+Typically, you will need to search for a combination of $\mathbf{Q}$,
+$\mathbf{R}$, and $\mathbf{P}_0$ that produces an accurate state estimation.
+However, to keep things simple in this assignment, we are providing you with
+these values in the `kalman_filter_test` function.
+
+A correct implementation for DR will result in a plot that looks like this:
+
+![](example-output-2_2.png)
+
+and in the terminal you should see
+
+```txt
+kalman filtering test successful.
+```
+
+### 2.3 Extended Kalman Filter (EKF) (20 points)
 
 ## Grading with AutoLab
 TODO
@@ -204,3 +456,12 @@ receive a score out of 100. You may upload as many times as you like.
 Note that we may regrade submissions after the deadline passes.
 
 ## References
+1. J. Amanatides and A. Woo, “A Fast Voxel Traversal Algorithm for Ray
+Tracing,” 1987, doi: 10.2312/egtp.19871000.
+2. R. E. Kalman, “A New Approach to Linear Filtering and Prediction Problems,”
+Journal of Basic Engineering, vol. 82, no. 1, pp. 35–45, Mar. 1960, doi:
+10.1115/1.3662552.
+
+
+## Author(s)
+Kshitij Goel, Wennie Tabib
