@@ -286,7 +286,7 @@ For DR, Eq. 2 is approximated as
 
 $$
 g(\mathbf{x}, \mathbf{u}) = \mathbf{x} + f(\mathbf{x}, \mathbf{u}) \Delta t
-\tag{3}
+\tag{4}
 $$
 
 At any $t$, we want to estimate the state $\hat{\mathbf{x}}\_t$. We are given the estimated
@@ -296,10 +296,10 @@ state estimate is obtained in DR using:
 
 $$
 \mathbf{x}\_t = \mathbf{x}\_{t-1} + g(\mathbf{x}\_{t-1}, \mathbf{u}\_t) \Delta t
-\tag{4}
+\tag{5}
 $$
 
-Open `state_est_py/estimator.py` and implement Eq. 4 in the `dead_reckoning` method within the `Estimator` class.
+Open `state_est_py/estimator.py` and implement Eq. 5 in the `dead_reckoning` method within the `Estimator` class.
 
 **Debugging and Grading**
 We have provided the `state_est_py/estimator_test.py` script for testing.
@@ -327,7 +327,7 @@ good estimates for the robot. This is because we have ignored using any sensors
 that may be onboard the robot (e.g., GPS) and we have not accounted for the
 process noise $\mathbf{w}$.
 
-### 2.2 Kalman Filter (KF) (10 points)
+### 2.2 Kalman Filter (KF) (20 points)
 Let us assume that our wheeled robot is operating outdoors on a rough terrain. Due to
 the rough terrain, the actual motion of the robot suffers from unknown perturbations (i.e., the
 unknown process noise $\mathbf{w}$). There is a GPS sensor mounted on the robot that provides
@@ -376,6 +376,7 @@ y\_{t-1}
 u\_R
 \end{bmatrix} +
 \mathbf{w}\_t.
+\tag{5}
 $$
 
 This equation can be written in a shorter form as
@@ -406,17 +407,19 @@ the following inputs:
 2. The measurement model noise covariance $\mathbf{R}$.
 3. An initial guess for the covariance associated with the state $\mathbf{P}\_0$.
 
-The algorithms progresses as follows. At timestep $t$, we first estimate the state using
+The algorithm progresses as follows. At timestep $t$, we first estimate the state using
 the process model,
 
 $$
 \hat{\mathbf{x}}\_t = \mathbf{A} \hat{\mathbf{x}}\_{t-1} + \mathbf{B} \hat{\mathbf{u}\_t},
+\tag{6}
 $$
 
 followed by an update to the covariance (or uncertainty) estimate about this state:
 
 $$
 \mathbf{P}\_t = \mathbf{A} \mathbf{P}\_{t-1} \mathbf{A}^{\top} + \mathbf{Q}.
+\tag{7}
 $$
 
 Notice how the process model noise is incorporated in the uncertainty estimate for the state.
@@ -461,7 +464,7 @@ $\mathbf{R}$, and $\mathbf{P}\_0$ that produces an accurate state estimation.
 However, to keep things simple in this assignment, we are providing you with
 these values in the `kalman_filter_test` function.
 
-A correct implementation for DR will result in a plot that looks like this:
+A correct implementation for KF will result in a plot that looks like this:
 
 ![](example-output-2_2.png)
 
@@ -471,7 +474,84 @@ and in the terminal you should see
 kalman filtering test successful.
 ```
 
-### 2.3 Extended Kalman Filter (EKF) (20 points)
+The shaded region in the plot above is a collection of ellipses representing the covariance
+values $(\mathbf{P}\_{0}, \mathbf{P}\_1, \ldots, \mathbf{P}\_{N-1})$. Intuitively, this is also called
+the "confidence region" of the state estimates, i.e., there is a high probability that the
+robot is at the center ("mean") line of this shaded region.
+
+You will also observe that the raw estimates are noisy zig-zag lines. This is expected. In practice,
+the Kalman filters are used along with fixed-lag smoothers to mitigate this problem. Implementing
+a fixed-lag smoother is out of scope of this assignment.
+
+Overall, the state estimate does not drift as it did in the dead reckoning case
+(the shaded region tracks the ground truth trajectory).  However, we made a
+major assumption by fixing $\psi = \pi / 4$ in Eq. 5 to make the process model
+linear. Furthermore, we were not able to estimate the state element $\psi$.  In
+the next section, we will attempt to linearize the process model according to
+the current state so as to address these limitations.
+
+### 2.3 Extended Kalman Filter (EKF) (10 points)
+To linearize $g(\mathbf{x}, \mathbf{u})$, an alternative is to use first-order
+Taylor's series expansion at the current state and control input (for example,
+$(\mathbf{x}_c, \mathbf{u}_c)$):
+
+$$
+g(\mathbf{x}, \mathbf{u}) \approx g(\mathbf{x}_c, \mathbf{u}_c) + \left( \frac{\partial g}{\partial \mathbf{x}} \right)\_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{x} - \mathbf{x}_c) + \left( \frac{\partial g}{\partial \mathbf{u}} \right)\_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{u} - \mathbf{u}_c)
+$$
+
+You have to derive the expression for the partial derivative $\frac{\partial g}{\partial \mathbf{x}}$
+using Eq. 4. The partial derivative  $\frac{\partial g}{\partial \mathbf{u}}$ is not really required but
+you can derive it as an exercise.
+
+We keep the measurement model the same as in the Kalman filter case. However, note that the measurement model
+can also be nonlinear for the EKF in general.
+
+Now, using the partial derivative, two steps in the Kalman filter update have to be modified.
+
+First, Eq. 6 becomes
+
+$$
+\hat{\mathbf{x}}\_t = g(\hat{\mathbf{x}}\_{t-1}, \mathbf{u}_t).
+$$
+
+And second, Eq. 7 becomes
+
+$$
+\mathbf{A} = \left( \frac{\partial g}{\partial \mathbf{x}} \right)\_{(\mathbf{x}\_{t-1}, \mathbf{u}_t)},\\
+\mathbf{P}\_t = A \mathbf{P}\_{t-1} \mathbf{A}^{\top} + \mathbf{Q}.
+$$
+
+
+**Debugging and Grading**
+Just like the kalman filtering test, we have provided the function
+`extended_kalman_filter_test` inside the `state_est_py/estimator_test.py` script for
+testing.  It uses the ground truth data `test_data/extended_kalman_filter_test.npz`
+which contains:
+
+1. Correct states $(\mathbf{x}\_0, \mathbf{x}\_1, \ldots, \mathbf{x}\_{N-1})$
+2. Control inputs $(\mathbf{u}\_0, \mathbf{u}\_1, \ldots, \mathbf{u}\_{N-1})$
+3. Observed GPS data $(\mathbf{y}\_0, \mathbf{y}\_1, \ldots, \mathbf{y}\_{N-1})$
+4. Errors observed for the reference EKF estimator implementation
+
+Typically, you will need to search for a combination of $\mathbf{Q}$,
+$\mathbf{R}$, and $\mathbf{P}\_0$ that produces an accurate state estimation.
+However, to keep things simple in this assignment, we are providing you with
+these values in the `extended_kalman_filter_test` function.
+
+A correct implementation for EKF will result in a plot that looks like this:
+
+![](example-output-2_3.png)
+
+and in the terminal you should see
+
+```txt
+extended kalman filtering test successful.
+```
+
+The estimation result for $x$ and $y$ looks similar but the EKF enables us to get
+reliable state estimates for heading as well. As in KF, EKF also outputs the uncertainty.
+
+![](example-output-2_4.png)
 
 ## Grading with AutoLab
 TODO
