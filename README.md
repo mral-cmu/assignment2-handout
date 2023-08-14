@@ -549,9 +549,17 @@ extended kalman filtering test successful.
 ```
 
 The estimation result for $x$ and $y$ looks similar but the EKF enables us to get
-reliable state estimates for heading as well. As in KF, EKF also outputs the uncertainty.
+reliable state estimates for heading as well.
 
 ![](example-output-2_4.png)
+
+In practice, with nonlinear measurement models the accuracy of EKF is higher
+than KF.
+
+While many advanced techniques have been proposed for localization, the EKF is
+still widely used in industry and academia. Recently it was used for the Orion
+Absolute Navigation (NVA) subsystem onboard the Orion spacecraft during the
+Artemis-I mission to the Moon orbit [3].
 
 ## Grading with AutoLab
 TODO
@@ -570,6 +578,8 @@ Tracing,” 1987, doi: 10.2312/egtp.19871000.
 2. R. E. Kalman, “A New Approach to Linear Filtering and Prediction Problems,”
 Journal of Basic Engineering, vol. 82, no. 1, pp. 35–45, Mar. 1960, doi:
 10.1115/1.3662552.
+3. J. Sullivan and C. D'Souza, "EXTENDED KALMAN FILTER PERFORMANCE ON THE
+ARTEMIS-1 MISSION", NASA Technical Report, 2023 [link](https://ntrs.nasa.gov/api/citations/20230000548/downloads/Orion_EKF_AAS_2023.pdf)
 
 
 ## Author(s)
