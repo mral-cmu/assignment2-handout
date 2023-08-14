@@ -9,6 +9,10 @@ The `mapper_py` directory will contain the occupancy grid map implementation tha
 you will create through this assignment. Likewise, `state_est_py` will contain
 all python scripts that enable filtering-based localization.
 
+### Academic Integrity
+1. Do not publicly share your solution (using GitHub or otherwise)
+2. Collaboration is encouraged but you should write final code on your own.
+
 ### Setup
 Create a python virtual environment.
 ```bash
@@ -77,7 +81,7 @@ python3 grid_test.py --map simple_obstacle
 ```
 should look like:
 
-![](example-output-1_1.png)
+![](imgs/example-output-1_1.png)
 
 In the terminal, you should see:
 ```txt
@@ -94,7 +98,7 @@ main function of `mapper_py/grid_test.py`, you will see several tests for this f
 that test corner conditions such as: slopped rays, rays going outside of the map bounds, etc.
 Example output (second figure) after running `python3 grid_test.py --map simple_obstacle`:
 
-![](example-output-1_2.png)
+![](imgs/example-output-1_2.png)
 
 In the terminal, you should see:
 ```txt
@@ -148,7 +152,7 @@ python sensor_test.py
 ```
 should look like
 
-![](example-output-1_3.png)
+![](imgs/example-output-1_3.png)
 
 and
 ```text
@@ -174,11 +178,11 @@ python mapper_test.py
 ```
 the final figure for `simple_obstacle` map will look like
 
-![](example-output-1_4.png)
+![](imgs/example-output-1_4.png)
 
 the final figure for `office` map will look like
 
-![](example-output-1_5.png)
+![](imgs/example-output-1_5.png)
 
 and the terminal printouts will be
 
@@ -200,7 +204,7 @@ its state using a noisy GPS sensor.
 ### Differential Drive Robot
 
 <p align="center">
-  <img src="diff_drive_robot.png" />
+  <img src="imgs/diff_drive_robot.png" />
 </p>
 
 A wheeled robot equipped with a differential drive contains two main wheels controllable
@@ -314,7 +318,7 @@ supposed to account for any noise.
 
 A correct implementation for DR will result in a plot that looks like this:
 
-![](example-output-2_1.png)
+![](imgs/example-output-2_1.png)
 
 and in the terminal you should see
 
@@ -466,7 +470,7 @@ these values in the `kalman_filter_test` function.
 
 A correct implementation for KF will result in a plot that looks like this:
 
-![](example-output-2_2.png)
+![](imgs/example-output-2_2.png)
 
 and in the terminal you should see
 
@@ -539,7 +543,7 @@ these values in the `extended_kalman_filter_test` function.
 
 A correct implementation for EKF will result in a plot that looks like this:
 
-![](example-output-2_3.png)
+![](imgs/example-output-2_3.png)
 
 and in the terminal you should see
 
@@ -550,7 +554,7 @@ extended kalman filtering test successful.
 The estimation result for $x$ and $y$ looks similar but the EKF enables us to get
 reliable state estimates for heading as well.
 
-![](example-output-2_4.png)
+![](imgs/example-output-2_4.png)
 
 In practice, with nonlinear measurement models the accuracy of EKF is higher
 than KF.
@@ -561,11 +565,13 @@ Absolute Navigation (NVA) subsystem onboard the Orion spacecraft during the
 Artemis-I mission to the Moon orbit [3].
 
 ## Grading with AutoLab
-TODO
+Assuming you are in this assignment directory, run this command after completing your solutions:
 
 ```
-tar -cvf <todo> handin.tar
+tar -C . -cvf handin.tar mapper_py state_est_py
 ```
+
+Submit `handin.tar` on Autolab.
 
 Autolab will run tests on each function you implement and you will
 receive a score out of 100. You may upload as many times as you like.
