@@ -493,7 +493,7 @@ the current state so as to address these limitations.
 ### 2.3 Extended Kalman Filter (EKF) (10 points)
 To linearize $g(\mathbf{x}, \mathbf{u})$, an alternative is to use first-order
 Taylor's series expansion at the current state and control input (for example,
-$(\mathbf{x}_c, \mathbf{u}_c)$):
+$(\mathbf{x}_c, \mathbf{u}_c)$ ):
 
 $$
 g(\mathbf{x}, \mathbf{u}) \approx g(\mathbf{x}_c, \mathbf{u}_c) + \left( \frac{\partial g}{\partial \mathbf{x}} \right)\_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{x} - \mathbf{x}_c) + \left( \frac{\partial g}{\partial \mathbf{u}} \right)\_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{u} - \mathbf{u}_c)
@@ -514,11 +514,10 @@ $$
 \hat{\mathbf{x}}\_t = g(\hat{\mathbf{x}}\_{t-1}, \mathbf{u}_t).
 $$
 
-And second, Eq. 7 becomes
+And second, the matrix $\mathbf{A}$ in Eq. 7 becomes
 
 $$
-\mathbf{A} = \left( \frac{\partial g}{\partial \mathbf{x}} \right)\_{(\mathbf{x}\_{t-1}, \mathbf{u}_t)},\\
-\mathbf{P}\_t = A \mathbf{P}\_{t-1} \mathbf{A}^{\top} + \mathbf{Q}.
+\mathbf{A} = \left( \frac{\partial g}{\partial \mathbf{x}} \right)\_{(\mathbf{x}\_{t-1}, \mathbf{u}_t)}
 $$
 
 
