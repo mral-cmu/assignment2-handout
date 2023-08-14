@@ -496,7 +496,7 @@ Taylor's series expansion at the current state and control input (for example,
 $(\mathbf{x}_c, \mathbf{u}_c)$ ):
 
 $$
-g(\mathbf{x}, \mathbf{u}) \approx g(\mathbf{x}_c, \mathbf{u}_c) + \left( \frac{\partial g}{\partial \mathbf{x}} \right)\_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{x} - \mathbf{x}_c) + \left( \frac{\partial g}{\partial \mathbf{u}} \right)\_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{u} - \mathbf{u}_c)
+g(\mathbf{x}, \mathbf{u}) \approx g(\mathbf{x}_c, \mathbf{u}_c) + \left( \frac{\partial g}{\partial \mathbf{x}} \right)\_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{x} - \mathbf{x}_c) + \left( \frac{\partial g}{\partial \mathbf{u}} \right)\_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{u} - \mathbf{u}_c) + \text{Higher Order Terms}
 $$
 
 You have to derive the expression for the partial derivative $\frac{\partial g}{\partial \mathbf{x}}$
