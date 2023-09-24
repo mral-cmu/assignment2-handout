@@ -285,7 +285,7 @@ class Grid2D:
         """Figure out the cells that the ray from start to end traverses.
 
         Corner cases that must be accounted for:
-        - If start and end points coincide, return (False, None).
+        - If start and end points coincide, return (True, [start cell]).
         - Check that the start point is inside the grid. Return (False, None) otherwise.
         - End point can be outside the grid. The ray tracing must stop at the edges of the grid.
         - Perfectly horizontal and vertical rays.
