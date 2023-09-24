@@ -402,14 +402,14 @@ The Kalman filter also requires a *measurement model*, a linear model for the se
 will use the following model for our GPS sensor:
 
 $$
-\mathbf{y}\_t \coloneqq h(\mathbf{x}\_t, \mathbf{v}\_t) = \mathbf{C} \mathbf{x}\_t + \mathbf{v}\_t =
+\mathbf{z}\_t \coloneqq h(\mathbf{x}\_t, \mathbf{v}\_t) = \mathbf{C} \mathbf{x}\_t + \mathbf{v}\_t =
 \begin{bmatrix}1 & 0 \\
 0 & 1
 \end{bmatrix} 
 \mathbf{x}\_t + \mathbf{v}\_t.
 $$
 
-Here, $\mathbf{y}\_t$ is the current observation from the sensor,
+Here, $\mathbf{z}\_t$ is the current observation from the sensor,
 $h(\mathbf{x}\_t, \mathbf{v}\_t)$ denotes the linear measurement model, and it is assumed that
 the noise in the GPS sensor is Gaussian distributed, $\mathbf{v}\_t \sim \mathcal{N}(0, \mathbf{R})$,
 with zero-mean and a covariance $\mathbf{R}$.
@@ -444,10 +444,10 @@ $$
 $$
 
 The Kalman Gain is then used to correct the state estimate in-place, utilizing the latest
-measurement from the GPS, $\mathbf{y}\_t$,
+measurement from the GPS, $\mathbf{z}\_t$,
 
 $$
-\hat{\mathbf{x}}\_{t} \leftarrow \hat{\mathbf{x}}\_t + \mathbf{K}\_t (\mathbf{y}\_t - \mathbf{C}\hat{\mathbf{x}\_t}),
+\hat{\mathbf{x}}\_{t} \leftarrow \hat{\mathbf{x}}\_t + \mathbf{K}\_t (\mathbf{z}\_t - \mathbf{C}\hat{\mathbf{x}\_t}),
 $$
 
 followed by an in-place covariance correction
@@ -469,7 +469,7 @@ which contains:
 
 1. Correct states $(\mathbf{x}\_0, \mathbf{x}\_1, \ldots, \mathbf{x}\_{N-1})$
 2. Control inputs $(\mathbf{u}\_0, \mathbf{u}\_1, \ldots, \mathbf{u}\_{N-1})$
-3. Observed GPS data $(\mathbf{y}\_0, \mathbf{y}\_1, \ldots, \mathbf{y}\_{N-1})$
+3. Observed GPS data $(\mathbf{z}\_0, \mathbf{z}\_1, \ldots, \mathbf{z}\_{N-1})$
 4. Errors observed for the reference KF estimator implementation
 
 Typically, you will need to search for a combination of $\mathbf{Q}$,
@@ -542,7 +542,7 @@ which contains:
 
 1. Correct states $(\mathbf{x}\_0, \mathbf{x}\_1, \ldots, \mathbf{x}\_{N-1})$
 2. Control inputs $(\mathbf{u}\_0, \mathbf{u}\_1, \ldots, \mathbf{u}\_{N-1})$
-3. Observed GPS data $(\mathbf{y}\_0, \mathbf{y}\_1, \ldots, \mathbf{y}\_{N-1})$
+3. Observed GPS data $(\mathbf{z}\_0, \mathbf{z}\_1, \ldots, \mathbf{z}\_{N-1})$
 4. Errors observed for the reference EKF estimator implementation
 
 Typically, you will need to search for a combination of $\mathbf{Q}$,
