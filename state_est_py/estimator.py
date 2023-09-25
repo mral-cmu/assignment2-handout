@@ -60,18 +60,18 @@ class Estimator:
 
         Estimate the next state and the associated uncertainty from the previous state x
         and uncertainty P, control input u, observation y, process noise covariance Q, and
-        measurement noise covariance R. Note that in this case we are ignoring heading state (ψ).
+        measurement noise covariance R. Note that in this case we are not ignoring heading state (ψ).
 
         Args:
-            x: (np.array for 2 floats) State at the previous timestep
-            P: (np.array of floats, 2x2) Uncertainty in the state at the previous timestep
+            x: (np.array for 3 floats) State at the previous timestep
+            P: (np.array of floats, 3x3) Uncertainty in the state at the previous timestep
             u: (np.array for 2 floats) Control input to the left (u[0]) and right (u[1]) wheels
             y: (np.array for 2 floats) GPS observation of the position (x, y)
-            Q: (np.array of floats, 2x2) Process model noise covariance matrix
+            Q: (np.array of floats, 3x3) Process model noise covariance matrix
             R: (np.array of floats, 2x2) Measurement model noise covariance matrix
 
         Returns:
-            (next_x, next_P): Tuple(np.array of 2 floats, np.array of floats with shape 2x2)
+            (next_x, next_P): Tuple(np.array of 3 floats, np.array of floats with shape 3x3)
                               Next state vector and covariance matrix
         """
         # TODO: Assignment 2, Problem 2.3
