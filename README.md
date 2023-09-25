@@ -308,7 +308,7 @@ system $\mathbf{u}\_t$. Using the definition of $g(\mathbf{x}, \mathbf{u})$ in E
 state estimate is obtained in DR using:
 
 $$
-\mathbf{x}\_t = \mathbf{x}\_{t-1} + g(\mathbf{x}\_{t-1}, \mathbf{u}\_t) \Delta t
+\mathbf{x}\_t = \mathbf{x}\_{t-1} + f(\mathbf{x}\_{t-1}, \mathbf{u}\_t) \Delta t
 \tag{5}
 $$
 
