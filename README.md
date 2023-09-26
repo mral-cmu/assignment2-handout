@@ -176,6 +176,8 @@ perform occupancy grid mapping via logodds update.
 You have to implement the methods `update_logodds`, `update_miss`, `update_hit`, and `add_ray`
 in this part. The instructions are provided in the docstrings for each of the functions.
 
+Notice that you will have to implement the functions `freeQ`, `occupiedQ`, and `unknownQ` in the `Grid2D` class.
+
 **Debugging and Grading**
 We have provided a testing script `mapper_py/mapper_test.py`. Running this script will show
 an animation of the occupancy grid map being created using ray observations of the environment.
