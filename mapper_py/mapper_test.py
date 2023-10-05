@@ -80,8 +80,6 @@ def test_qualitative(positions, map_name='simple_obstacle'):
         plt.pause(0.2)
         hl.remove()
 
-    plt.show()
-
 
 def test_quantitative(positions, map_name='simple_obstacle'):
     png_map_path = f'test_data/{map_name}.png'
@@ -171,3 +169,5 @@ if __name__ == "__main__":
     else:
         cprint.err(
             'Quantitative test failed for office map.', interrupt=True)
+
+    plt.show()
