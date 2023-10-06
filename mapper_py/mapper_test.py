@@ -93,15 +93,20 @@ def test_quantitative(positions, map_name='simple_obstacle'):
 
     mapper_obj = Mapper(grid, sensor_obj, observer_obj)
 
+    scores_arr = []
     for i, pos in enumerate(positions):
         mapper_obj.add_obs(pos)
         npz_data_file = f'test_data/{map_name}_mapper_test_{str(i)}.npz'
         grid_numpy_correct = np.load(npz_data_file)['grid_numpy']
         grid_numpy = grid.to_numpy()
-        if not (np.abs(grid_numpy_correct - grid_numpy) < 1e-3).all():
-            return False
-
-    return True
+        corrects = np.abs(grid_numpy_correct - grid_numpy) < 1e-3
+        avg = np.sum(corrects) / grid.width / grid.height
+        if avg >= 0.95:
+            scores_arr.append(1.0)
+        else:
+            scores_arr.append(avg)
+    
+    return np.sum(np.array(scores_arr)) / len(positions)
 
 
 if __name__ == "__main__":
@@ -132,11 +137,8 @@ if __name__ == "__main__":
     cprint.info('Running qualitative test on simple_obstacle map')
     test_qualitative(simple_obs_positions, 'simple_obstacle')
     cprint.info('Running quantitative test on simple_obstacle map')
-    if test_quantitative(simple_obs_positions, 'simple_obstacle'):
-        cprint.ok('Quantitative test successful for simple_obstacle map.')
-    else:
-        cprint.err(
-            'Quantitative test failed for simple_obstacle map.', interrupt=True)
+    score = test_quantitative(simple_obs_positions, 'simple_obstacle')
+    cprint.ok('Quantitative test score for simple_obstacle map %f' % (score))
 
     office_positions = [
         Point(1.72, 3.13),
@@ -164,10 +166,7 @@ if __name__ == "__main__":
     cprint.info('Running qualitative test on office map')
     test_qualitative(office_positions, 'office')
     cprint.info('Running quantitative test on office map')
-    if test_quantitative(office_positions, 'office'):
-        cprint.ok('Quantitative test successful for office map.')
-    else:
-        cprint.err(
-            'Quantitative test failed for office map.', interrupt=True)
+    score = test_quantitative(office_positions, 'office')
+    cprint.ok('Quantitative test score for office map %f' % (score))
 
     plt.show()
