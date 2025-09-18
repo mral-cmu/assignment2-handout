@@ -211,11 +211,10 @@ So far, we have assumed that the position of the robot is perfectly known. In th
 of the assignment, we will create a localization system for a differential drive robot.
 There is no global positioning system available for our robot and we must reliably estimate
 its state using a noisy GPS sensor.
-
 ### Differential Drive Robot
 
 <p align="center">
-  <img src="imgs/diff_drive_robot.png" />
+  <img src="imgs/diff_drive_robot.png" alt="Differential drive robot" />
 </p>
 
 A wheeled robot equipped with a differential drive contains two main wheels controllable
@@ -223,74 +222,75 @@ through motors. Let us understand the kinematic model for such a robot. The stat
 of this robot at any time $t$ can be written using the vector
 
 $$
-\mathbf{x} = \begin{bmatrix}x \\
-y \\ 
-\psi 
+\mathbf{x} =
+\begin{bmatrix}
+x \\[4pt]
+y \\[4pt]
+\psi
 \end{bmatrix},
 $$
 
-where $x$ and $y$ are the coordinates of the robot in the 2D point space, $\psi$
-is the angle between the robot's x-axis and the global x-axis (see the
-illustration above). The control input applied to the wheels is denoted using
-the vector
+where $x$ and $y$ are the coordinates of the robot in the 2D plane and $\psi$
+is the angle between the robot's body $x$-axis and the global $x$-axis (see the
+illustration above). The control input applied to the wheels is denoted by
 
-$$\mathbf{u} = \begin{bmatrix}u_L \\
+$$
+\mathbf{u} =
+\begin{bmatrix}
+u_L \\[4pt]
 u_R
-\end{bmatrix}.
+\end{bmatrix},
 $$
 
-The time derivative of the state vector is given by
+where $u_L$ and $u_R$ are the left and right wheel commands (e.g., angular velocities).
+
+The continuous-time kinematics of the differential-drive robot are
 
 $$
-\dot{\mathbf{x}} \coloneqq f(\mathbf{x}, \mathbf{u}) = \begin{bmatrix} \frac{r}{2} \cos{\psi} & \frac{r}{2} \cos{\psi}\\
-\frac{r}{2} \sin{\psi} & \frac{r}{2} \sin{\psi} \\
+\dot{\mathbf{x}} \coloneqq f(\mathbf{x}, \mathbf{u})
+=
+\begin{bmatrix}
+\frac{r}{2}\cos\psi & \frac{r}{2}\cos\psi \\[6pt]
+\frac{r}{2}\sin\psi & \frac{r}{2}\sin\psi \\[6pt]
 -\frac{r}{L} & \frac{r}{L}
 \end{bmatrix}
-\begin{bmatrix} u_L \\
+\begin{bmatrix}
+u_L \\[4pt]
 u_R
 \end{bmatrix},
 \tag{1}
 $$
 
-where $r$ is the radius of each wheel and $L$ is the distance between the two wheels (axle length). 
+where $r$ is the radius of each wheel and $L$ is the distance between the two wheels (axle length).
 
-Equation 1 shows the continuous-time kinematics for the differential drive
-wheeled robot.  However, we will be working with discrete-time kinematics. In
-the discrete-time paradigm, we study the robot's kinematics at any *timestep*
-instead of any *time*.  We have to discretize time into equally sized intervals.
-Let the size of one such interval be $\Delta t$.  As $\Delta t \rightarrow 0$,
-discrete-time kinematics tends towards continuous-time kinematics.
+Equation (1) gives the continuous-time kinematics. For implementation and control we
+typically discretize time into equally sized steps of length $\Delta t$. Using a
+first-order (Euler) discretization, the state at timestep $t$ is approximated from the
+state at timestep $t-1$ as
 
-A key question then is: How to convert the continuous-time kinematics in Eq. 2
-to the discrete-time case? This cannot be done analytically and we need a
-numerical approximation. Here we use a first-order approximation of the
-continuous-time case using the Euler's method for numerical integration. Given
-the state at timestep $t-1$, the state at timestep $t$ is expressed as
-  
 $$
-\mathbf{x}\_{t} = \mathbf{x}\_{t-1} + f( \mathbf{x}\_{t-1}, \mathbf{u}\_{t} ) \Delta t.
+\mathbf{x}_{t} = \mathbf{x}_{t-1} + f(\mathbf{x}_{t-1}, \mathbf{u}_{t})\,\Delta t.
 \tag{2}
 $$
 
-In Eq. 1, we assumed that there is no noise from the environment affecting robot's state. This is
-a major assumption because most of the robotics application in real-world are prone to *process* noise.
-For example, if a wheeled robot is navigating on a rough surface, it's state might be affected from
-the oscillations due to uneven bumps in the surface.
-
-Accounting for the process noise, we get the continuous-time kinematics model of the robot:
+In Eq. (1) we assumed there is no process noise affecting the robot's state. In real
+applications many sources of uncertainty exist (uneven terrain, wheel slip, actuator
+noise, etc.). To account for process noise we can write a more general continuous-time model
 
 $$
-\dot{\mathbf{x}} = g( \mathbf{x}, \mathbf{u}, \mathbf{w} ),
+\dot{\mathbf{x}} = g(\mathbf{x}, \mathbf{u}, \mathbf{w}),
 \tag{3}
 $$
 
-where the function $g(\mathbf{x}, \mathbf{u}, \mathbf{w})$ is essentially a combination of the function
-$f(\mathbf{x}, \mathbf{u})$ and the process noise variable $\mathbf{w}$. Typically this combination is
-unknown for any robotic system. Thus, state estimation strategies impose assumptions on how the function
-$g(\mathbf{x}, \mathbf{u}, \mathbf{w})$ is related to $f(\mathbf{x}, \mathbf{u})$ and $\mathbf{w}$.
+where $\mathbf{w}$ denotes process noise and the function $g(\cdot)$ captures how
+noise affects the dynamics. Because the exact form of $g$ is typically unknown, state
+estimation methods (e.g., Kalman filters, particle filters) make assumptions about the
+relationship between $g$, $f$, and $\mathbf{w}$.
 
-Before we study estimators that account for process noise and sensing data, let us implement a
-naive state estimation method that ignores these aspects.
+Before studying estimators that incorporate process noise and sensor measurements,
+we will first implement a simple (naive) state estimator that ignores process noise
+and measurement uncertainty (i.e., it uses Eq. (2) directly).
+
 
 ### 2.1 Dead Reckoning (DR) (10 points)
 To get state estimate at any time $t$, why not just integrate the kinematics
@@ -300,19 +300,19 @@ without using any sensing data and noise handling, is known as Dead Reckoning (D
 For DR, Eq. 2 is approximated as
 
 $$
-g(\mathbf{x}, \mathbf{u}) = \mathbf{x} + f(\mathbf{x}, \mathbf{u}) \Delta t
+g(\mathbf{x}, \mathbf{u}) = \mathbf{x} + f(\mathbf{x}, \mathbf{u})\,\Delta t
 \tag{4}
 $$
 
-At any $t$, we want to estimate the state $\hat{\mathbf{x}}\_t$. We are given the estimated
-state $\hat{\mathbf{x}}\_{t-1}$ at the previous timestep $t-1$ and the current control input to the
-system $\mathbf{u}\_t$. Using the definition of $g(\mathbf{x}, \mathbf{u})$ in Eq. 3 above, the
-state estimate is obtained in DR using:
+At any timestep $t$, we want to estimate the state $\hat{\mathbf{x}}_{t}$.  
+We are given the estimated state $\hat{\mathbf{x}}_{t-1}$ at the previous timestep $t-1$, along with the current control input $\mathbf{u}_{t}$.  
+Using the definition of $g(\mathbf{x}, \mathbf{u})$ in Eq. (4) above, the state estimate in dead reckoning (DR) is obtained as
 
 $$
-\mathbf{x}\_t = \mathbf{x}\_{t-1} + f(\mathbf{x}\_{t-1}, \mathbf{u}\_t) \Delta t
+\hat{\mathbf{x}}_{t} = \hat{\mathbf{x}}_{t-1} + f(\hat{\mathbf{x}}_{t-1}, \mathbf{u}_{t})\,\Delta t.
 \tag{5}
 $$
+
 
 Open `state_est_py/estimator.py` and implement Eq. 5 in the `dead_reckoning` method within the `Estimator` class.
 
@@ -320,9 +320,9 @@ Open `state_est_py/estimator.py` and implement Eq. 5 in the `dead_reckoning` met
 We have provided the `state_est_py/estimator_test.py` script for testing.
 Please look through the function `dead_reckoning_test` and try to follow what it
 is doing. It uses the ground truth data `test_data/dead_reckoning_test.npz`
-(i.e., the real states $(\mathbf{x}\_0, \mathbf{x}\_1, \ldots, \mathbf{x}\_{N-1})$
-of the robot due to the control input sequence $(\mathbf{u}\_0, \mathbf{u}\_1,
-\ldots, \mathbf{u}\_{N-1})$ provided to the wheels of the robot). In our ground
+ (i.e., the real states $(\mathbf{x}_0, \mathbf{x}_1, \ldots, \mathbf{x}_{N-1})$
+of the robot due to the control input sequence $(\mathbf{u}_0, \mathbf{u}_1,
+\ldots, \mathbf{u}_{N-1})$ provided to the wheels of the robot). In our ground
 truth data collection process (which we will not reveal), we have added some
 noise to the process model of the robot.  In DR, as state earlier, you are not
 supposed to account for any noise.
@@ -374,66 +374,66 @@ sampled from a Gaussian distribution with zero mean and covariance $\mathbf{Q}$.
 Putting these pieces together, the final process model to be used for the Kalman filter is:
 
 $$
-\begin{bmatrix} x\_t \\
-y\_t
+\begin{bmatrix} x_t \\
+y_t
 \end{bmatrix} =
 \begin{bmatrix} 1 & 0 \\
 0 & 1
 \end{bmatrix}
-\begin{bmatrix} x\_{t-1} \\
-y\_{t-1}
+\begin{bmatrix} x_{t-1} \\
+y_{t-1}
 \end{bmatrix} +
 \begin{bmatrix}
 \Delta t \frac{r}{2} \cos{\psi} & \Delta t \frac{r}{2} \cos{\psi}\\
 \Delta t \frac{r}{2} \sin{\psi} & \Delta t \frac{r}{2} \sin{\psi}
 \end{bmatrix}_{\psi = \frac{\pi}{4}}
-\begin{bmatrix} u\_L \\
-u\_R
+\begin{bmatrix} u_L \\
+u_R
 \end{bmatrix} +
-\mathbf{w}\_t.
+\mathbf{w}_t.
 \tag{5}
 $$
 
 This equation can be written in a shorter form as
 
 $$
-\mathbf{x}\_t = \mathbf{A} \mathbf{x}\_{t-1} + \mathbf{B} \mathbf{u}\_t + \mathbf{w}\_t.
+\mathbf{x}_t = \mathbf{A} \mathbf{x}_{t-1} + \mathbf{B} \mathbf{u}_t + \mathbf{w}_t.
 $$
 
 The Kalman filter also requires a *measurement model*, a linear model for the sensor. We
 will use the following model for our GPS sensor:
 
 $$
-\mathbf{z}\_t \coloneqq h(\mathbf{x}\_t, \mathbf{v}\_t) = \mathbf{C} \mathbf{x}\_t + \mathbf{v}\_t =
+\mathbf{z}_t \coloneqq h(\mathbf{x}_t, \mathbf{v}_t) = \mathbf{C} \mathbf{x}_t + \mathbf{v}_t =
 \begin{bmatrix}1 & 0 \\
 0 & 1
 \end{bmatrix} 
-\mathbf{x}\_t + \mathbf{v}\_t.
+\mathbf{x}_t + \mathbf{v}_t.
 $$
 
-Here, $\mathbf{z}\_t$ is the current observation from the sensor,
-$h(\mathbf{x}\_t, \mathbf{v}\_t)$ denotes the linear measurement model, and it is assumed that
-the noise in the GPS sensor is Gaussian distributed, $\mathbf{v}\_t \sim \mathcal{N}(0, \mathbf{R})$,
+Here, $\mathbf{z}_t$ is the current observation from the sensor,
+$h(\mathbf{x}_t, \mathbf{v}_t)$ denotes the linear measurement model, and it is assumed that
+the noise in the GPS sensor is Gaussian distributed, $\mathbf{v}_t \sim \mathcal{N}(0, \mathbf{R})$,
 with zero-mean and a covariance $\mathbf{R}$.
 
 We now have all the elements to implement the Kalman filter. Note that the Kalman filter requires
 the following inputs:
 1. The process model noise covariance $\mathbf{Q}$.
 2. The measurement model noise covariance $\mathbf{R}$.
-3. An initial guess for the covariance associated with the state $\mathbf{P}\_0$.
+3. An initial guess for the covariance associated with the state $\mathbf{P}_0$.
 
 The algorithm progresses as follows. At timestep $t$, we first estimate the state using
 the process model,
 
 $$
-\hat{\mathbf{x}}\_t = \mathbf{A} \hat{\mathbf{x}}\_{t-1} + \mathbf{B} \hat{\mathbf{u}\_t},
+\hat{\mathbf{x}}_t = \mathbf{A} \hat{\mathbf{x}}_{t-1} + \mathbf{B} \hat{\mathbf{u}_t},
 \tag{6}
 $$
 
 followed by an update to the covariance (or uncertainty) estimate about this state:
 
 $$
-\mathbf{P}\_t = \mathbf{A} \mathbf{P}\_{t-1} \mathbf{A}^{\top} + \mathbf{Q}.
+\mathbf{P}_t = \mathbf{A} \mathbf{P}_{t-1} \mathbf{A}^{\top} + \mathbf{Q}.
 \tag{7}
 $$
 
@@ -442,20 +442,20 @@ Now, we need to incorporate the knowledge acquired through the GPS sensor while 
 the associated noise. We do this by computing what's called the *Kalman Gain*:
 
 $$
-\mathbf{K}\_{t} = \mathbf{P}\_t \mathbf{C}^{\top} (\mathbf{C} \mathbf{P}\_{t} \mathbf{C}^{\top} + \mathbf{R})^{-1}.
+\mathbf{K}_{t} = \mathbf{P}_t \mathbf{C}^{\top} (\mathbf{C} \mathbf{P}_{t} \mathbf{C}^{\top} + \mathbf{R})^{-1}.
 $$
 
 The Kalman Gain is then used to correct the state estimate in-place, utilizing the latest
-measurement from the GPS, $\mathbf{z}\_t$,
+measurement from the GPS, $\mathbf{z}_t$,
 
 $$
-\hat{\mathbf{x}}\_{t} \leftarrow \hat{\mathbf{x}}\_t + \mathbf{K}\_t (\mathbf{z}\_t - \mathbf{C}\hat{\mathbf{x}\_t}),
+\hat{\mathbf{x}}_{t} \leftarrow \hat{\mathbf{x}}_t + \mathbf{K}_t (\mathbf{z}_t - \mathbf{C}\hat{\mathbf{x}_t}),
 $$
 
 followed by an in-place covariance correction
 
 $$
-\mathbf{P}\_t \leftarrow (\mathbf{I} - \mathbf{K}\_t \mathbf{C}) \mathbf{P}\_t.
+\mathbf{P}_t \leftarrow (\mathbf{I} - \mathbf{K}_t \mathbf{C}) \mathbf{P}_t.
 $$
 
 This process is repeated for all possible timesteps $t$.
@@ -469,13 +469,13 @@ Just like the dead reckoning test, we have provided the function
 testing.  It uses the ground truth data `test_data/kalman_filter_test.npz`
 which contains:
 
-1. Correct states $(\mathbf{x}\_0, \mathbf{x}\_1, \ldots, \mathbf{x}\_{N-1})$
-2. Control inputs $(\mathbf{u}\_0, \mathbf{u}\_1, \ldots, \mathbf{u}\_{N-1})$
-3. Observed GPS data $(\mathbf{z}\_0, \mathbf{z}\_1, \ldots, \mathbf{z}\_{N-1})$
+1. Correct states $(\mathbf{x}_0, \mathbf{x}_1, \ldots, \mathbf{x}_{N-1})$
+2. Control inputs $(\mathbf{u}_0, \mathbf{u}_1, \ldots, \mathbf{u}_{N-1})$
+3. Observed GPS data $(\mathbf{z}_0, \mathbf{z}_1, \ldots, \mathbf{z}_{N-1})$
 4. Errors observed for the reference KF estimator implementation
 
 Typically, you will need to search for a combination of $\mathbf{Q}$,
-$\mathbf{R}$, and $\mathbf{P}\_0$ that produces an accurate state estimation.
+$\mathbf{R}$, and $\mathbf{P}_0$ that produces an accurate state estimation.
 However, to keep things simple in this assignment, we are providing you with
 these values in the `kalman_filter_test` function.
 
@@ -490,7 +490,7 @@ kalman filtering test successful.
 ```
 
 The shaded region in the plot above is a collection of ellipses representing the covariance
-values $(\mathbf{P}\_{0}, \mathbf{P}\_1, \ldots, \mathbf{P}\_{N-1})$. Intuitively, this is also called
+values $(\mathbf{P}_{0}, \mathbf{P}_1, \ldots, \mathbf{P}_{N-1})$. Intuitively, this is also called
 the "confidence region" of the state estimates, i.e., there is a high probability that the
 robot is at the center ("mean") line of this shaded region.
 
@@ -511,7 +511,7 @@ Taylor's series expansion at the current state and control input (for example,
 $(\mathbf{x}_c, \mathbf{u}_c)$ ):
 
 $$
-g(\mathbf{x}, \mathbf{u}) \approx g(\mathbf{x}_c, \mathbf{u}_c) + \left( \frac{\partial g}{\partial \mathbf{x}} \right)\_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{x} - \mathbf{x}_c) + \left( \frac{\partial g}{\partial \mathbf{u}} \right)\_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{u} - \mathbf{u}_c) + \text{Higher Order Terms}
+g(\mathbf{x}, \mathbf{u}) \approx g(\mathbf{x}_c, \mathbf{u}_c) + \left( \frac{\partial g}{\partial \mathbf{x}} \right)_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{x} - \mathbf{x}_c) + \left( \frac{\partial g}{\partial \mathbf{u}} \right)_{(\mathbf{x}_c, \mathbf{u}_c)} (\mathbf{u} - \mathbf{u}_c) + \text{Higher Order Terms}
 $$
 
 You have to derive the expression for the partial derivative $\frac{\partial g}{\partial \mathbf{x}}$
@@ -526,13 +526,13 @@ Now, using the partial derivative, two steps in the Kalman filter update have to
 First, Eq. 6 becomes
 
 $$
-\hat{\mathbf{x}}\_t = g(\hat{\mathbf{x}}\_{t-1}, \mathbf{u}_t).
+\hat{\mathbf{x}}_t = g(\hat{\mathbf{x}}_{t-1}, \mathbf{u}_t).
 $$
 
 And second, the matrix $\mathbf{A}$ in Eq. 7 becomes
 
 $$
-\mathbf{A} = \left( \frac{\partial g}{\partial \mathbf{x}} \right)\_{(\mathbf{x}\_{t-1}, \mathbf{u}_t)}
+\mathbf{A} = \left( \frac{\partial g}{\partial \mathbf{x}} \right)_{(\mathbf{x}_{t-1}, \mathbf{u}_t)}
 $$
 
 
@@ -542,13 +542,13 @@ Just like the kalman filtering test, we have provided the function
 testing.  It uses the ground truth data `test_data/extended_kalman_filter_test.npz`
 which contains:
 
-1. Correct states $(\mathbf{x}\_0, \mathbf{x}\_1, \ldots, \mathbf{x}\_{N-1})$
-2. Control inputs $(\mathbf{u}\_0, \mathbf{u}\_1, \ldots, \mathbf{u}\_{N-1})$
-3. Observed GPS data $(\mathbf{z}\_0, \mathbf{z}\_1, \ldots, \mathbf{z}\_{N-1})$
+1. Correct states $(\mathbf{x}_0, \mathbf{x}_1, \ldots, \mathbf{x}_{N-1})$
+2. Control inputs $(\mathbf{u}_0, \mathbf{u}_1, \ldots, \mathbf{u}_{N-1})$
+3. Observed GPS data $(\mathbf{z}_0, \mathbf{z}_1, \ldots, \mathbf{z}_{N-1})$
 4. Errors observed for the reference EKF estimator implementation
 
 Typically, you will need to search for a combination of $\mathbf{Q}$,
-$\mathbf{R}$, and $\mathbf{P}\_0$ that produces an accurate state estimation.
+$\mathbf{R}$, and $\mathbf{P}_0$ that produces an accurate state estimation.
 However, to keep things simple in this assignment, we are providing you with
 these values in the `extended_kalman_filter_test` function.
 
