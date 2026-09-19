@@ -224,8 +224,8 @@ of this robot at any time $t$ can be written using the vector
 
 $$
 \mathbf{x} = \begin{bmatrix}x \\
-y \\ 
-\psi 
+y \\
+\psi
 \end{bmatrix},
 $$
 
@@ -252,7 +252,7 @@ u_R
 \tag{1}
 $$
 
-where $r$ is the radius of each wheel and $L$ is the distance between the two wheels (axle length). 
+where $r$ is the radius of each wheel and $L$ is the distance between the two wheels (axle length).
 
 Equation 1 shows the continuous-time kinematics for the differential drive
 wheeled robot.  However, we will be working with discrete-time kinematics. In
@@ -266,7 +266,7 @@ to the discrete-time case? This cannot be done analytically and we need a
 numerical approximation. Here we use a first-order approximation of the
 continuous-time case using the Euler's method for numerical integration. Given
 the state at timestep $t-1$, the state at timestep $t$ is expressed as
-  
+
 $$
 \mathbf{x}\_{t} = \mathbf{x}\_{t-1} + f( \mathbf{x}\_{t-1}, \mathbf{u}\_{t} ) \Delta t.
 \tag{2}
@@ -407,7 +407,7 @@ $$
 \mathbf{z}\_t \coloneqq h(\mathbf{x}\_t, \mathbf{v}\_t) = \mathbf{C} \mathbf{x}\_t + \mathbf{v}\_t =
 \begin{bmatrix}1 & 0 \\
 0 & 1
-\end{bmatrix} 
+\end{bmatrix}
 \mathbf{x}\_t + \mathbf{v}\_t.
 $$
 
@@ -575,18 +575,23 @@ still widely used in industry and academia. Recently it was used for the Orion
 Absolute Navigation (NVA) subsystem onboard the Orion spacecraft during the
 Artemis-I mission to the Moon orbit [3].
 
-## Grading with AutoLab
-Assuming you are in this assignment directory, run this command after completing your solutions:
+## Grading with Gradescope
+To have your solutions graded, you will need to zip the `mapper_py`
+and `state_est_py` folders and upload to Gradescope.
 
 ```
-tar -C . -cvf handin.tar mapper_py state_est_py
+cd assignment2-handout
+zip -r handin.zip mapper_py state_est_py.
 ```
 
-Submit `handin.tar` on Autolab.
-
-Autolab will run tests on each function you implement and you will
-receive a score out of 100. You may upload as many times as you like.
+Gradescope will run tests on each function you implement and you will
+receive a score out of 100.  You may upload as many times as you like.
 Note that we may regrade submissions after the deadline passes.
+
+The base image we use for Gradescope is Ubuntu 22.04. Ubuntu 22.04 has
+Python 3.10 installed by default. Your code may fail to pass the
+autograder tests if you use a higher version of Python (e.g., Python
+3.12).
 
 ## References
 1. J. Amanatides and A. Woo, “A Fast Voxel Traversal Algorithm for Ray
